@@ -299,7 +299,7 @@
             correctCond: ['c2','c3']
         }
     ];
-    // All three conditions always available to drag
+
     const allConditions = [
         {id:'c1', label:'Power shortage (battery <20%)'},
         {id:'c2', label:'Extreme cold (temp <0°C)'},
@@ -312,10 +312,7 @@
         const round = rounds[currentRound];
         const rows = round.data.map(r =>
             '<tr>' +
-            '<td>' + r.a + '</td>' +
-            '<td>' + r.t + '°C</td>' +
-            '<td>' + r.b + '%</td>' +
-            '<td>' + r.s + '</td>' +
+            '<td>' + r.a + '</td><td>' + r.t + '°C</td><td>' + r.b + '%</td><td>' + r.s + '</td>' +
             '<td><span style="padding:3px 8px;border-radius:20px;font-weight:700;font-size:0.75rem;background:' +
             (r.o === 'Success' ? 'var(--accent-green)' : 'var(--accent-red)') +
             '">' + r.o + '</span></td></tr>'
@@ -339,11 +336,7 @@
             </div>
             <div class="card">
                 <h3>🔎 Drag conditions that cause failure</h3>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                    ${allConditions.map(c => 
-                        '<div class="condition-tag" draggable="true" data-cid="' + c.id + '" id="ctag-' + c.id + '">' + c.label + '</div>'
-                    ).join('')}
-                </div>
+                <div id="conditionsSource" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
                 <div class="discovery-dropzone" id="discZone"></div>
                 <button class="btn btn-primary" id="bchk4">✅ Check Pattern</button>
                 <p id="fb4"></p>
@@ -351,55 +344,67 @@
             <div id="disc" style="display:none;"></div>
             <button class="btn btn-outline btn-sm" onclick="window.goToPhase('dash')">↩️ Dashboard</button>`;
 
-        const discZone = document.getElementById('discZone');
+        const sourceContainer = document.getElementById('conditionsSource');
+        const dropZone = document.getElementById('discZone');
         let placedCond = [];
-        discZone.innerHTML = '<span style="color:#666;">🧲 Drag conditions here...</span>';
 
-        // Attach dragstart/dragend to all condition tags
-        document.querySelectorAll('.condition-tag').forEach(tag => {
-            tag.style.display = 'inline-block';
-            tag.addEventListener('dragstart', e => {
-                e.dataTransfer.setData('text/plain', tag.dataset.cid);
-                tag.style.opacity = '0.5';
+        // Build the source area with all condition tags
+        function renderSourceAndDrop() {
+            sourceContainer.innerHTML = '';
+            allConditions.forEach(cond => {
+                const tag = document.createElement('div');
+                tag.className = 'condition-tag';
+                tag.textContent = cond.label;
+                tag.draggable = !placedCond.includes(cond.id); // disable if already placed
+                tag.style.opacity = placedCond.includes(cond.id) ? '0.4' : '1';
+                tag.style.cursor = placedCond.includes(cond.id) ? 'default' : 'grab';
+                tag.dataset.cid = cond.id;
+                tag.addEventListener('dragstart', e => {
+                    if (placedCond.includes(cond.id)) {
+                        e.preventDefault();
+                        return;
+                    }
+                    e.dataTransfer.setData('text/plain', cond.id);
+                    tag.style.opacity = '0.5';
+                });
+                tag.addEventListener('dragend', () => {
+                    tag.style.opacity = placedCond.includes(cond.id) ? '0.4' : '1';
+                });
+                sourceContainer.appendChild(tag);
             });
-            tag.addEventListener('dragend', () => {
-                tag.style.opacity = '1';
-            });
-        });
 
-        discZone.addEventListener('dragover', e => e.preventDefault());
+            // Rebuild dropzone content
+            dropZone.innerHTML = '';
+            if (placedCond.length === 0) {
+                dropZone.innerHTML = '<span style="color:#666;">🧲 Drag conditions here...</span>';
+            } else {
+                placedCond.forEach(cid => {
+                    const cond = allConditions.find(c => c.id === cid);
+                    const chip = document.createElement('span');
+                    chip.className = 'condition-tag';
+                    chip.textContent = cond.label;
+                    chip.style.cursor = 'pointer';
+                    chip.addEventListener('click', () => {
+                        placedCond = placedCond.filter(x => x !== cid);
+                        renderSourceAndDrop();
+                    });
+                    dropZone.appendChild(chip);
+                });
+            }
+        }
 
-        discZone.addEventListener('drop', e => {
+        renderSourceAndDrop();
+
+        dropZone.addEventListener('dragover', e => e.preventDefault());
+
+        dropZone.addEventListener('drop', e => {
             e.preventDefault();
             const cid = e.dataTransfer.getData('text/plain');
-            if (placedCond.includes(cid)) return;
+            if (!cid || placedCond.includes(cid)) return;
 
-            const originalTag = document.getElementById('ctag-' + cid);
-            if (!originalTag) return;
-
+            // Add condition
             placedCond.push(cid);
-
-            // Create a clone inside the dropzone
-            const clone = document.createElement('span');
-            clone.className = 'condition-tag';
-            clone.textContent = originalTag.textContent;
-            clone.style.cursor = 'pointer';
-            clone.addEventListener('click', () => {
-                clone.remove();
-                placedCond = placedCond.filter(x => x !== cid);
-                originalTag.style.display = 'inline-block';
-                if (placedCond.length === 0) {
-                    discZone.innerHTML = '<span style="color:#666;">🧲 Drag conditions here...</span>';
-                }
-            });
-            discZone.appendChild(clone);
-
-            // Hide the original tag (but it's still in the DOM)
-            originalTag.style.display = 'none';
-
-            // Remove the placeholder if it's still there
-            const placeholder = discZone.querySelector('span[style]');
-            if (placeholder) placeholder.remove();
+            renderSourceAndDrop();
         });
 
         document.getElementById('bchk4').addEventListener('click', () => {
