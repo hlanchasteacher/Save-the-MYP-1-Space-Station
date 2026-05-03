@@ -454,19 +454,164 @@
             }
 
             function renderMYPB() {
-                const proposals = [{id:'p1',n:'Alpha',d:'Replace everything. 3d, 50k cr, 95%.',s:4,c:2,r:3},{id:'p2',n:'Beta',d:'Patch. 6h, 5k cr, 70%.',s:3,c:5,r:4},{id:'p3',n:'Gamma',d:'Reroute aux. 2h, 500 cr, 85%.',s:4,c:4,r:5},{id:'p4',n:'Delta',d:'External module. 12h, 15k cr, 90%.',s:3,c:3,r:4},{id:'p5',n:'Epsilon',d:'Wait. 0h, 0 cr, 5%.',s:1,c:5,r:1}];
-                const ideas = [{id:'i1', text:'Keep existing system.', realistic:false},{id:'i2', text:'Add a secondary filter loop.', realistic:true},{id:'i3', text:'Launch a new satellite.', realistic:false},{id:'i4', text:'Crew drinks less.', realistic:false},{id:'i5', text:'Multi‑stage upgrade with available parts.', realistic:true}];
-                sc.innerHTML = `<div class="card"><span class="phase-badge badge-myp">MYP Phase B</span><h2>💡 Developing Ideas</h2><p><span class="context-label">CONTEXT:</span> After analysis, you now generate and evaluate possible solutions.</p><p style="color:var(--accent-orange);">✏️ Write <strong>Criterion B: Developing Ideas</strong>.</p></div><div id="act1"><div class="card"><h3>Activity 1: Select the top 2 proposals</h3></div><div>${proposals.map(p=>'<div class="sentence-card" data-pid="'+p.id+'"><h4>'+p.n+'</h4><p>'+p.d+'</p><p style="font-size:0.75rem;">⭐'+p.s+' ⏱️'+p.c+' 💰'+p.r+'</p></div>').join('')}</div><p id="selFb">Selected: 0/2</p><button class="btn btn-primary" id="bchkB" disabled>✅ Submit</button></div><div id="act2" style="display:none;"></div><div id="disc" style="display:none;"></div><button class="btn btn-outline btn-sm" onclick="window.goToPhase('dash')">↩️ Dashboard</button>`;
-                let selP=[]; document.querySelectorAll('.sentence-card').forEach(card=>{ card.addEventListener('click',function(){ const pid=this.dataset.pid; if(selP.includes(pid)){ selP=selP.filter(x=>x!==pid); this.classList.remove('selected-sentence'); } else { if(selP.length>=2){ const first=selP.shift(); document.querySelector(`.sentence-card[data-pid="${first}"]`)?.classList.remove('selected-sentence'); } selP.push(pid); this.classList.add('selected-sentence'); } document.getElementById('selFb').textContent='Selected: '+selP.length+'/2'; document.getElementById('bchkB').disabled=selP.length!==2; }); });
-                document.getElementById('bchkB').addEventListener('click',()=>{ if(selP.includes('p3')&&selP.includes('p4')&&selP.length===2){ toast('✅ Good choices!'); showBrainstorming(); } else toast('Select the two most balanced proposals.','error'); });
-                function showBrainstorming(){
-                    document.getElementById('act2').style.display='block';
-                    document.getElementById('act2').innerHTML = `<div class="card"><h3>Activity 2: Select most realistic brainstorming ideas</h3><p>${ideas.map(i=>'<div class="draggable-item" data-iid="'+i.id+'">'+i.text+'</div>').join('')}</div><p id="iFb">0 selected</p><button class="btn btn-primary" id="bchkB2">✅ Check</button><p id="fbB2"></p></div>`;
-                    let selI=[]; document.querySelectorAll('[data-iid]').forEach(el=>{ el.addEventListener('click',function(){ const iid=this.dataset.iid; if(selI.includes(iid)){ selI=selI.filter(x=>x!==iid); this.classList.remove('placed'); } else { selI.push(iid); this.classList.add('placed'); } document.getElementById('iFb').textContent=selI.length+' selected'; }); });
-                    document.getElementById('bchkB2').addEventListener('click',()=>{ const real=ideas.filter(i=>i.realistic).map(i=>i.id); if(real.every(i=>selI.includes(i))&&selI.every(i=>real.includes(i))){ toast('✅ Realistic!'); st.mypB=!0; if(!st.discMYP.includes('Criterion B')) st.discMYP.push('Criterion B'); sv(); showDiscB(); } else { document.getElementById('fbB2').style.color='var(--accent-red)'; document.getElementById('fbB2').textContent='Choose practical, achievable ideas.'; } });
+    const proposals = [
+        {
+            id: 'p1',
+            n: 'Proposal Alpha',
+            d: 'Replace the entire life‑support system. This would take 3 days, cost 50,000 credits, and has a 95% success rate.',
+            s: 4, c: 2, r: 3
+        },
+        {
+            id: 'p2',
+            n: 'Proposal Beta',
+            d: 'Patch the existing system with spare parts. Takes only 6 hours, costs 5,000 credits, but only has a 70% chance of success.',
+            s: 3, c: 5, r: 4
+        },
+        {
+            id: 'p3',
+            n: 'Proposal Gamma',
+            d: 'Reroute power through auxiliary lines. Very quick (2 hours), costs only 500 credits, and offers an 85% success rate.',
+            s: 4, c: 4, r: 5
+        },
+        {
+            id: 'p4',
+            n: 'Proposal Delta',
+            d: 'Install a temporary external support module. Takes 12 hours, costs 15,000 credits, and has a 90% success rate.',
+            s: 3, c: 3, r: 4
+        },
+        {
+            id: 'p5',
+            n: 'Proposal Epsilon',
+            d: 'Do nothing and hope the problem resolves itself. Takes 0 hours, costs 0 credits, but only has a 5% chance of working.',
+            s: 1, c: 5, r: 1
+        }
+    ];
+    const ideas = [
+        { id: 'i1', text: 'Keep the existing water recycling system without any changes.', realistic: false },
+        { id: 'i2', text: 'Add a secondary filter loop to improve water purity.', realistic: true },
+        { id: 'i3', text: 'Launch a completely new water‑harvesting satellite.', realistic: false },
+        { id: 'i4', text: 'Ask the crew to drink less until a new system arrives.', realistic: false },
+        { id: 'i5', text: 'Implement a multi‑stage filtration upgrade using spare parts already on board.', realistic: true }
+    ];
+
+    sc.innerHTML = `
+        <div class="card">
+            <span class="phase-badge badge-myp">MYP Phase B</span>
+            <h2>💡 Developing Ideas</h2>
+            <p><span class="context-label">CONTEXT:</span> After analysis, you now generate and evaluate possible solutions.</p>
+            <p style="color:var(--accent-orange);">✏️ Write <strong>Criterion B: Developing Ideas</strong> in your notebook.</p>
+        </div>
+        <div id="act1">
+            <div class="card">
+                <h3>Activity 1: Select the top 2 proposals</h3>
+                <p>Read each proposal carefully. Pick the <strong>two</strong> that best balance safety, speed, and cost. Click to select / deselect.</p>
+            </div>
+            <div>
+                ${proposals.map(p => `
+                    <div class="sentence-card" data-pid="${p.id}">
+                        <h4>${p.n}</h4>
+                        <p style="font-size:0.95rem;">${p.d}</p>
+                        <p style="font-size:0.75rem;color:var(--text-muted);">
+                            Safety: ${'⭐'.repeat(p.s)} &nbsp; Speed: ${'⏱️'.repeat(p.c)} &nbsp; Resources: ${'💰'.repeat(p.r)}
+                        </p>
+                    </div>
+                `).join('')}
+            </div>
+            <p id="selFb">Selected: 0/2</p>
+            <button class="btn btn-primary" id="bchkB" disabled>✅ Submit</button>
+        </div>
+        <div id="act2" style="display:none;"></div>
+        <div id="disc" style="display:none;"></div>
+        <button class="btn btn-outline btn-sm" onclick="window.goToPhase('dash')">↩️ Dashboard</button>`;
+
+    let selP = [];
+    document.querySelectorAll('.sentence-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const pid = this.dataset.pid;
+            if (selP.includes(pid)) {
+                selP = selP.filter(x => x !== pid);
+                this.classList.remove('selected-sentence');
+            } else {
+                if (selP.length >= 2) {
+                    const first = selP.shift();
+                    document.querySelector(`.sentence-card[data-pid="${first}"]`)?.classList.remove('selected-sentence');
                 }
-                function showDiscB(){ const d=document.getElementById('disc'); d.style.display='block'; d.innerHTML=`<div class="discovery-box"><span style="font-size:2.5rem;">💡</span><strong>Criterion B</strong><p>Generating different design ideas and evaluating them against criteria to pick the best one.</p><p style="color:var(--accent-orange);">✏️ Copy this definition.</p><div><input type="checkbox" id="cbB"><label>✅ I wrote it down.</label></div><button class="btn btn-success" id="bcB" disabled>➡️ Dashboard</button></div>`; document.getElementById('cbB').addEventListener('change',function(){ document.getElementById('bcB').disabled=!this.checked; }); document.getElementById('bcB').addEventListener('click',()=>goTo('dash')); }
+                selP.push(pid);
+                this.classList.add('selected-sentence');
             }
+            document.getElementById('selFb').textContent = 'Selected: ' + selP.length + '/2';
+            document.getElementById('bchkB').disabled = selP.length !== 2;
+        });
+    });
+
+    document.getElementById('bchkB').addEventListener('click', () => {
+        if (selP.includes('p3') && selP.includes('p4') && selP.length === 2) {
+            toast('✅ Good choices! Now evaluate brainstorming ideas.');
+            showBrainstorming();
+        } else {
+            toast('Select the two most balanced proposals.', 'error');
+        }
+    });
+
+    function showBrainstorming() {
+        document.getElementById('act2').style.display = 'block';
+        document.getElementById('act2').innerHTML = `
+            <div class="card">
+                <h3>Activity 2: Select the most realistic brainstorming ideas</h3>
+                <p>${ideas.map(i => '<div class="draggable-item" data-iid="' + i.id + '">' + i.text + '</div>').join('')}</p>
+                <p id="iFb">0 selected</p>
+                <button class="btn btn-primary" id="bchkB2">✅ Check</button>
+                <p id="fbB2"></p>
+            </div>`;
+
+        let selI = [];
+        document.querySelectorAll('[data-iid]').forEach(el => {
+            el.addEventListener('click', function() {
+                const iid = this.dataset.iid;
+                if (selI.includes(iid)) {
+                    selI = selI.filter(x => x !== iid);
+                    this.classList.remove('placed');
+                } else {
+                    selI.push(iid);
+                    this.classList.add('placed');
+                }
+                document.getElementById('iFb').textContent = selI.length + ' selected';
+            });
+        });
+
+        document.getElementById('bchkB2').addEventListener('click', () => {
+            const real = ideas.filter(i => i.realistic).map(i => i.id);
+            if (real.every(i => selI.includes(i)) && selI.every(i => real.includes(i))) {
+                toast('✅ Realistic ideas chosen!');
+                st.mypB = true;
+                if (!st.discMYP.includes('Criterion B')) st.discMYP.push('Criterion B');
+                sv();
+                showDiscB();
+            } else {
+                document.getElementById('fbB2').style.color = 'var(--accent-red)';
+                document.getElementById('fbB2').textContent = 'Choose practical, achievable ideas – not too simple, not extreme.';
+            }
+        });
+    }
+
+    function showDiscB() {
+        const d = document.getElementById('disc');
+        d.style.display = 'block';
+        d.innerHTML = `
+            <div class="discovery-box">
+                <span style="font-size:2.5rem;">💡</span>
+                <strong>Criterion B – Developing Ideas</strong>
+                <p>Generating different design ideas and evaluating them against criteria (like safety, cost, speed) to pick the best one to build.</p>
+                <p style="color:var(--accent-orange);">✏️ Copy this definition into your notebook.</p>
+                <div><input type="checkbox" id="cbB"><label for="cbB">✅ I wrote it down.</label></div>
+                <button class="btn btn-success" id="bcB" disabled>➡️ Dashboard</button>
+            </div>`;
+        document.getElementById('cbB').addEventListener('change', function() {
+            document.getElementById('bcB').disabled = !this.checked;
+        });
+        document.getElementById('bcB').addEventListener('click', () => goTo('dash'));
+    }
+}
 
             function renderMYPC() {
                 const plan = ['1. Shut down auxiliary power','2. Reroute cables','3. Replace damaged filter','4. Run diagnostic','5. Restore power'];
